@@ -36,7 +36,7 @@ func (uc *AnalyticsUseCase) Execute(ctx context.Context, shortURL string) (*enti
 		return nil, fmt.Errorf("failed to get link: %w", err)
 	}
 	if link == nil {
-		return nil, fmt.Errorf("link not found")
+		return nil, ErrLinkNotFound
 	}
 
 	// Получаем аналитику

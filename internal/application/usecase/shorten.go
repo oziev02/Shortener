@@ -17,13 +17,6 @@ type ShortenUseCase struct {
 	cache            Cache
 }
 
-// Cache интерфейс для кэширования
-type Cache interface {
-	Get(ctx context.Context, key string, dest interface{}) error
-	Set(ctx context.Context, key string, value interface{}) error
-	Delete(ctx context.Context, key string) error
-}
-
 // NewShortenUseCase создаёт новый use case
 func NewShortenUseCase(
 	linkRepo repository.LinkRepository,
@@ -62,13 +55,13 @@ func (uc *ShortenUseCase) Execute(ctx context.Context, req CreateLinkRequest) (*
 			return nil, fmt.Errorf("failed to check alias: %w", err)
 		}
 		if existing != nil {
-			return nil, fmt.Errorf("custom alias already exists")
+			return nil, ErrAliasExists
 		}
 		shortURL = req.CustomAlias
 	} else {
 		// Генерируем случайный короткий URL
 		for {
-			shortURL, err = uc.shortenerService.GenerateShortURL(8)
+			shortURL, err = uc.shortenerService.GenerateShortURL(DefaultShortURLLength)
 			if err != nil {
 				return nil, fmt.Errorf("failed to generate short URL: %w", err)
 			}
@@ -99,7 +92,10 @@ func (uc *ShortenUseCase) Execute(ctx context.Context, req CreateLinkRequest) (*
 	// Кэшируем ссылку
 	if uc.cache != nil {
 		cacheKey := fmt.Sprintf("link:%s", shortURL)
-		uc.cache.Set(ctx, cacheKey, link)
+		if err := uc.cache.Set(ctx, cacheKey, link); err != nil {
+			// Ошибка кэширования не критична, продолжаем работу
+			_ = err
+		}
 	}
 
 	return &CreateLinkResponse{

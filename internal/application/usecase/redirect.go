@@ -50,13 +50,16 @@ func (uc *RedirectUseCase) Execute(ctx context.Context, shortURL string, userAge
 			return "", fmt.Errorf("failed to get link: %w", err)
 		}
 		if link == nil {
-			return "", fmt.Errorf("link not found")
+			return "", ErrLinkNotFound
 		}
 
 		// Сохраняем в кэш
 		if uc.cache != nil {
 			cacheKey := fmt.Sprintf("link:%s", shortURL)
-			uc.cache.Set(ctx, cacheKey, link)
+			if err := uc.cache.Set(ctx, cacheKey, link); err != nil {
+				// Ошибка кэширования не критична, продолжаем работу
+				_ = err
+			}
 		}
 	}
 

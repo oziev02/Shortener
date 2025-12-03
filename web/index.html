@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+            margin-top: 50px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            font-weight: 600;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .short-url {
+            color: #667eea;
+            font-weight: 600;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+
+        .copy-btn {
+            background: #4caf50;
+            margin-top: 10px;
+            width: auto;
+            padding: 8px 20px;
+        }
+
+        .analytics-section {
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .analytics-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .analytics-input input {
+            flex: 1;
+        }
+
+        .analytics-input button {
+            width: auto;
+            min-width: 120px;
+        }
+
+        .analytics-result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .analytics-result.show {
+            display: block;
+        }
+
+        .stat-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #666;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 URL Shortener</h1>
+
+        <div class="form-group">
+            <label for="originalUrl">Оригинальный URL:</label>
+            <input type="url" id="originalUrl" placeholder="https://example.com" required>
+        </div>
+
+        <div class="form-group">
+            <label for="customAlias">Кастомный алиас (опционально):</label>
+            <input type="text" id="customAlias" placeholder="my-link">
+        </div>
+
+        <button onclick="shortenUrl()">Создать короткую ссылку</button>
+
+        <div id="result" class="result"></div>
+
+        <div class="analytics-section">
+            <h2>Аналитика</h2>
+            <div class="analytics-input">
+                <input type="text" id="analyticsUrl" placeholder="Введите короткий URL (например: abc123)">
+                <button onclick="getAnalytics()">Получить аналитику</button>
+            </div>
+            <div id="analyticsResult" class="analytics-result"></div>
+        </div>
+    </div>
+
+    <script>
+        async function shortenUrl() {
+            const originalUrl = document.getElementById('originalUrl').value;
+            const customAlias = document.getElementById('customAlias').value;
+            const resultDiv = document.getElementById('result');
+
+            if (!originalUrl) {
+                resultDiv.innerHTML = '<div class="error">Пожалуйста, введите URL</div>';
+                resultDiv.classList.add('show');
+                return;
+            }
+
+            try {
+                const response = await fetch('/shorten', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        original_url: originalUrl,
+                        custom_alias: customAlias || undefined
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">Ссылка успешно создана!</div>
+                        <div class="short-url">${data.short_url}</div>
+                        <button class="copy-btn" onclick="copyToClipboard('${data.short_url}')">Копировать</button>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">Ошибка: ${data.error || 'Неизвестная ошибка'}</div>`;
+                }
+                resultDiv.classList.add('show');
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Ошибка: ${error.message}</div>`;
+                resultDiv.classList.add('show');
+            }
+        }
+
+        async function getAnalytics() {
+            const analyticsUrl = document.getElementById('analyticsUrl').value;
+            const resultDiv = document.getElementById('analyticsResult');
+
+            if (!analyticsUrl) {
+                resultDiv.innerHTML = '<div class="error">Пожалуйста, введите короткий URL</div>';
+                resultDiv.classList.add('show');
+                return;
+            }
+
+            // Извлекаем код из полного URL или используем как есть
+            let shortCode = analyticsUrl;
+            if (analyticsUrl.includes('/s/')) {
+                shortCode = analyticsUrl.split('/s/')[1];
+            }
+
+            try {
+                const response = await fetch(`/analytics/${shortCode}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    let html = `
+                        <div class="stat-item">
+                            <div class="stat-label">Всего переходов:</div>
+                            <div class="stat-value">${data.total_clicks}</div>
+                        </div>
+                    `;
+
+                    if (Object.keys(data.by_day).length > 0) {
+                        html += '<div class="stat-item"><div class="stat-label">По дням:</div>';
+                        for (const [day, count] of Object.entries(data.by_day)) {
+                            html += `<div class="stat-value">${day}: ${count}</div>`;
+                        }
+                        html += '</div>';
+                    }
+
+                    if (Object.keys(data.by_month).length > 0) {
+                        html += '<div class="stat-item"><div class="stat-label">По месяцам:</div>';
+                        for (const [month, count] of Object.entries(data.by_month)) {
+                            html += `<div class="stat-value">${month}: ${count}</div>`;
+                        }
+                        html += '</div>';
+                    }
+
+                    if (Object.keys(data.by_user_agent).length > 0) {
+                        html += '<div class="stat-item"><div class="stat-label">По User-Agent:</div>';
+                        for (const [ua, count] of Object.entries(data.by_user_agent)) {
+                            html += `<div class="stat-value">${ua.substring(0, 50)}...: ${count}</div>`;
+                        }
+                        html += '</div>';
+                    }
+
+                    if (data.recent_clicks && data.recent_clicks.length > 0) {
+                        html += '<div class="stat-item"><div class="stat-label">Последние переходы:</div>';
+                        data.recent_clicks.forEach(click => {
+                            html += `<div class="stat-value">${new Date(click.clicked_at).toLocaleString('ru-RU')} - ${click.user_agent || 'N/A'}</div>`;
+                        });
+                        html += '</div>';
+                    }
+
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">Ошибка: ${data.error || 'Ссылка не найдена'}</div>`;
+                }
+                resultDiv.classList.add('show');
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Ошибка: ${error.message}</div>`;
+                resultDiv.classList.add('show');
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Скопировано в буфер обмена!');
+            }).catch(err => {
+                console.error('Ошибка копирования:', err);
+            });
+        }
+
+        // Разрешить отправку формы по Enter
+        document.getElementById('originalUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                shortenUrl();
+            }
+        });
+
+        document.getElementById('analyticsUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                getAnalytics();
+            }
+        });
+    </script>
+</body>
+</html>
+

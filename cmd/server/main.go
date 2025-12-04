@@ -66,8 +66,9 @@ func main() {
 	redirectUC := usecase.NewRedirectUseCase(linkRepo, clickRepo, redisCache)
 	analyticsUC := usecase.NewAnalyticsUseCase(linkRepo, clickRepo, redisCache)
 
-	// Инициализация HTTP handler
-	handler := httphandler.NewHandler(shortenUC, redirectUC, analyticsUC)
+	// Инициализация HTTP handler с логгером
+	logger := httphandler.NewStdLogger()
+	handler := httphandler.NewHandler(shortenUC, redirectUC, analyticsUC, logger)
 	router := httphandler.NewRouter(handler)
 	mux := router.SetupRoutes()
 

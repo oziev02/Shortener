@@ -86,10 +86,16 @@ func (r *LinkRepositoryImpl) Create(ctx context.Context, link *entity.Link) erro
 	query := `INSERT INTO links (short_url, original_url, custom_alias, created_at) 
 			  VALUES ($1, $2, $3, $4) RETURNING id`
 
+	// Преобразуем пустую строку в NULL для custom_alias
+	var customAlias interface{} = link.CustomAlias
+	if link.CustomAlias == "" {
+		customAlias = nil
+	}
+
 	err := r.db.db.QueryRowContext(ctx, query,
 		link.ShortURL,
 		link.OriginalURL,
-		link.CustomAlias,
+		customAlias,
 		link.CreatedAt,
 	).Scan(&link.ID)
 
@@ -105,11 +111,12 @@ func (r *LinkRepositoryImpl) GetByShortURL(ctx context.Context, shortURL string)
 			  FROM links WHERE short_url = $1`
 
 	link := &entity.Link{}
+	var customAlias sql.NullString
 	err := r.db.db.QueryRowContext(ctx, query, shortURL).Scan(
 		&link.ID,
 		&link.ShortURL,
 		&link.OriginalURL,
-		&link.CustomAlias,
+		&customAlias,
 		&link.CreatedAt,
 	)
 
@@ -120,6 +127,10 @@ func (r *LinkRepositoryImpl) GetByShortURL(ctx context.Context, shortURL string)
 		return nil, fmt.Errorf("failed to get link: %w", err)
 	}
 
+	if customAlias.Valid {
+		link.CustomAlias = customAlias.String
+	}
+
 	return link, nil
 }
 
@@ -128,11 +139,12 @@ func (r *LinkRepositoryImpl) GetByCustomAlias(ctx context.Context, alias string)
 			  FROM links WHERE custom_alias = $1`
 
 	link := &entity.Link{}
+	var customAlias sql.NullString
 	err := r.db.db.QueryRowContext(ctx, query, alias).Scan(
 		&link.ID,
 		&link.ShortURL,
 		&link.OriginalURL,
-		&link.CustomAlias,
+		&customAlias,
 		&link.CreatedAt,
 	)
 
@@ -141,6 +153,10 @@ func (r *LinkRepositoryImpl) GetByCustomAlias(ctx context.Context, alias string)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get link by alias: %w", err)
+	}
+
+	if customAlias.Valid {
+		link.CustomAlias = customAlias.String
 	}
 
 	return link, nil

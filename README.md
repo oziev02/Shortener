@@ -51,7 +51,7 @@ cp .env.example .env
 ```env
 PORT=8080
 BASE_URL=http://localhost:8080
-DATABASE_DSN=postgres://user:password@localhost/shortener?sslmode=disable
+DATABASE_DSN=postgres://user:password@localhost:5433/shortener?sslmode=disable
 REDIS_ADDR=localhost:6379
 REDIS_PASSWORD=
 ENABLE_REDIS=false
@@ -82,13 +82,21 @@ go run cmd/server/main.go
 ```bash
 make run          # Запуск без Redis
 make run-redis    # Запуск с Redis
+make build        # Сборка бинарника
+make docker-up    # Запуск Docker Compose
+make docker-down  # Остановка Docker Compose
+make deps         # Установка зависимостей
+make fmt          # Форматирование кода и сортировка импортов
+make lint         # Запуск линтера
+make vet          # Запуск go vet
+make check        # Все проверки (fmt-check + vet + lint)
 ```
 
 **С переопределением через флаги:**
 ```bash
 go run cmd/server/main.go \
   -port=8080 \
-  -db="postgres://user:password@localhost/shortener?sslmode=disable" \
+  -db="postgres://user:password@localhost:5433/shortener?sslmode=disable" \
   -base-url="http://localhost:8080" \
   -enable-redis
 ```
@@ -96,7 +104,7 @@ go run cmd/server/main.go \
 **Или через переменные окружения:**
 ```bash
 export PORT=8080
-export DATABASE_DSN="postgres://user:password@localhost/shortener?sslmode=disable"
+export DATABASE_DSN="postgres://user:password@localhost:5433/shortener?sslmode=disable"
 export ENABLE_REDIS=true
 go run cmd/server/main.go
 ```
@@ -104,6 +112,27 @@ go run cmd/server/main.go
 ### 5. Открыть веб-интерфейс
 
 Откройте браузер и перейдите по адресу: http://localhost:8080
+
+## Разработка
+
+### Форматирование и линтинг
+
+Проект использует инструменты для поддержания качества кода:
+
+**Установка инструментов:**
+```bash
+go install golang.org/x/tools/cmd/goimports@latest
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+```
+
+**Команды:**
+```bash
+make fmt          # Форматировать код и отсортировать импорты
+make fmt-check    # Проверить форматирование (без изменений)
+make lint         # Запустить линтер
+make vet          # Запустить go vet
+make check        # Все проверки сразу (fmt-check + vet + lint)
+```
 
 ## API Эндпоинты
 

@@ -27,7 +27,7 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		Port:          getEnv("PORT", "8080"),
-		DatabaseDSN:   getEnv("DATABASE_DSN", "postgres://user:password@localhost/shortener?sslmode=disable"),
+		DatabaseDSN:   getEnv("DATABASE_DSN", "postgres://user:password@localhost:5433/shortener?sslmode=disable"),
 		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 		BaseURL:       getEnv("BASE_URL", "http://localhost:8080"),

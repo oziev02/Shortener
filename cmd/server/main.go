@@ -43,14 +43,15 @@ func main() {
 	defer db.Close()
 
 	// Подключение к Redis (опционально)
-	var redisCache *cache.RedisCache
+	var cacheInstance usecase.Cache
 	if *enableRedis {
-		redisCache, err = cache.NewRedisCache(*redisAddr, *redisPassword, 0, cfg.RedisTTL)
+		redisCache, err := cache.NewRedisCache(*redisAddr, *redisPassword, 0, cfg.RedisTTL)
 		if err != nil {
 			log.Printf("Warning: Failed to connect to Redis: %v. Continuing without cache.", err)
 		} else {
 			defer redisCache.Close()
 			log.Println("Redis cache enabled")
+			cacheInstance = redisCache
 		}
 	}
 
@@ -62,9 +63,9 @@ func main() {
 	shortenerService := service.NewShortenerService(*baseURL)
 
 	// Инициализация use cases
-	shortenUC := usecase.NewShortenUseCase(linkRepo, shortenerService, redisCache)
-	redirectUC := usecase.NewRedirectUseCase(linkRepo, clickRepo, redisCache)
-	analyticsUC := usecase.NewAnalyticsUseCase(linkRepo, clickRepo, redisCache)
+	shortenUC := usecase.NewShortenUseCase(linkRepo, shortenerService, cacheInstance)
+	redirectUC := usecase.NewRedirectUseCase(linkRepo, clickRepo, cacheInstance)
+	analyticsUC := usecase.NewAnalyticsUseCase(linkRepo, clickRepo, cacheInstance)
 
 	// Инициализация HTTP handler с логгером
 	logger := httphandler.NewStdLogger()
